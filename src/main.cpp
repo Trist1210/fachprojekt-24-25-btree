@@ -14,10 +14,10 @@ int main(int count_arguments, char **arguments)
         .action([](const std::string &value) { return std::uint16_t(std::stoi(value)); });
     argument_parser.add_argument("--insert-workload")
         .help("File containing the workload to insert in the tree.")
-        .default_value(std::string{"workloads/fill_randint_workloada"});
+        .default_value(std::string{"../../workloads/fill_randint_workloada"});
     argument_parser.add_argument("--mixed-workload")
         .help("File containing the workload for the tree lookup.")
-        .default_value(std::string{"workloads/mixed_randint_workloada"});
+        .default_value(std::string{"../../workloads/mixed_randint_workloada"});
 
     // Parse arguments.
     try

@@ -18,6 +18,8 @@ workload () {
     cd build
     cmake ..
     make ycsb
+    cp -r workloads/ ../
+    rm -r workloads/
     cd ..
 }
 
