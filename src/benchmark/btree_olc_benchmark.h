@@ -57,6 +57,21 @@ public:
         }
     }
 
+    void validate_tree()
+    {
+        for (auto i=0; i<_workload[benchmark::phase::INSERT].size(); ++i)
+        {
+            const auto &request = _workload[benchmark::phase::INSERT][i];
+            std::int64_t value;
+            this->_tree->lookup(request.key(), value);
+            if(value != request.value())
+            {
+                std::cout << "Error, the tree does not return the correct value. " << request.value() << " expected, but " << value << " returned!\nAborting!" << std::endl;
+                exit(1);
+            }
+        }
+    }
+
     void execute_benchmark() 
     {
         for (auto i = 0U; i < this->_iterations; ++i)
@@ -78,6 +93,8 @@ public:
             this->execute_single_run(phase::INSERT);
             event_counter.stop();
             
+            validate_tree();
+
             /// Print the results
             std::cout << "Insert phase[" << i << "]: ";
             auto result = event_counter.result();
