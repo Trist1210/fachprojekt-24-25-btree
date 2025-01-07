@@ -24,7 +24,6 @@ workload () {
 }
 
 run () {
-    ls
     cd build/bin
 
     if [[ "$*" == *"-store" ]]; then
