@@ -21,7 +21,7 @@ ExternalProject_Add(
     argparse-external
     GIT_REPOSITORY "https://github.com/p-ranav/argparse"
     GIT_TAG "v2.9"
-    PREFIX "lib/argparse"
+    PREFIX "../lib/argparse"
     INSTALL_COMMAND cmake -E echo ""
 )
 
@@ -29,7 +29,7 @@ ExternalProject_Add(
     json-external
     GIT_REPOSITORY "https://github.com/nlohmann/json"
     GIT_TAG "v3.11.2"
-    PREFIX "lib/json"
+    PREFIX "../lib/json"
     INSTALL_COMMAND cmake -E echo ""
     BUILD_COMMAND cmake -E echo ""
     CONFIGURE_COMMAND cmake -E echo ""
@@ -39,7 +39,7 @@ ExternalProject_Add(
     perf-cpp-external
     GIT_REPOSITORY "https://github.com/jmuehlig/perf-cpp"
     GIT_TAG "v0.9.0"
-    PREFIX "lib/perf-cpp"
+    PREFIX "../lib/perf-cpp"
     INSTALL_COMMAND cmake -E echo ""
 )
 

@@ -2,7 +2,7 @@
 
 build () {
     if [[ "$*" == *"-clean" ]]; then
-        rm -r build
+        rm -r build -y
     fi
 
     mkdir -p build
