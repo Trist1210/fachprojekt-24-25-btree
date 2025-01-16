@@ -1,0 +1,25 @@
+#Baseline
+Workload: insert phase: 50000000 inserts / mixed phase: 50000000 requests
+Insert phase[0]: seconds: 45.3315 | instructions: 3.6821e+10 | cycles: 1.81769e+11 | 
+Lookup phase[0]: seconds: 47.5584 | instructions: 2.59067e+10 | cycles: 1.92781e+11 |
+
+
+#opm num thread 1
+Workload: insert phase: 50000000 inserts / mixed phase: 50000000 requests
+Insert phase[0]: seconds: 44.439 | instructions: 3.68169e+10 | cycles: 1.81231e+11 | 
+Lookup phase[0]: seconds: 46.1071 | instructions: 2.59076e+10 | cycles: 1.89031e+11 | 
+
+#opm num thread 2
+Workload: insert phase: 50000000 inserts / mixed phase: 50000000 requests
+Insert phase[0]: seconds: 25.125 | instructions: 1.84329e+10 | cycles: 9.01519e+10 | 
+Lookup phase[0]: seconds: 24.8582 | instructions: 1.29624e+10 | cycles: 9.25747e+10 | 
+
+#opm num thread 3
+Workload: insert phase: 50000000 inserts / mixed phase: 50000000 requests
+Insert phase[0]: seconds: 18.1369 | instructions: 1.23052e+10 | cycles: 6.8615e+10 | 
+Lookup phase[0]: seconds: 17.5569 | instructions: 8.64189e+09 | cycles: 6.88697e+10 |
+
+#opm num thread 4
+Workload: insert phase: 50000000 inserts / mixed phase: 50000000 requests
+Insert phase[0]: seconds: 14.999 | instructions: 9.27363e+09 | cycles: 5.65946e+10 | 
+Lookup phase[0]: seconds: 14.2197 | instructions: 6.48983e+09 | cycles: 5.61285e+10 |

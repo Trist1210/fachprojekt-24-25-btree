@@ -6,6 +6,7 @@
 #include <iostream>
 #include <sched.h>
 #include <builtin.h>
+#include <emmintrin.h>
 
 namespace btreeolc {
 
@@ -15,7 +16,7 @@ enum class PageType : uint8_t
     BTreeLeaf = 2
 };
 
-static const uint64_t pageSize = 256U;
+static const uint64_t pageSize = 512U;
 
 struct OptLock
 {
@@ -97,7 +98,7 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
         Payload p;
     };
 
-    static const uint64_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(Payload));
+    static const uint16_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(Payload));
 
     Key keys[maxEntries];
     Payload payloads[maxEntries];
@@ -181,7 +182,7 @@ struct BTreeInnerBase : public NodeBase
 
 template <class Key> struct BTreeInner : public BTreeInnerBase
 {
-    static const uint64_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(NodeBase *));
+    static const uint16_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(NodeBase *));
     NodeBase *children[maxEntries];
     Key keys[maxEntries];
 
@@ -220,11 +221,11 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
                 lower = mid + 1;
             }
             else
-            {
+            {   
                 return mid;
             }
         } while (lower < upper);
-        return lower;
+        return lower; 
     }
 
     BTreeInner *split(Key &sep)
