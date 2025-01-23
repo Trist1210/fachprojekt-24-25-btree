@@ -40,7 +40,7 @@ int main(int count_arguments, char **arguments)
     std::cout << "Workload: " << benchmark_set << std::endl;
 
     /// Normal BTree
-    auto benchmark = benchmark::BtreeOLCBenchmark<btreeolc::BTree<std::uint64_t, std::int64_t>>{std::move(benchmark_set), iterations};
+    auto benchmark = benchmark::BtreeOLCBenchmark<btreeolc::BTree<std::uint64_t, std::int64_t>>{std::move(benchmark_set), 10};
     benchmark.benchmark::BtreeOLCBenchmark<btreeolc::BTree<std::uint64_t, std::int64_t>>::execute_benchmark();
 
     return 0;

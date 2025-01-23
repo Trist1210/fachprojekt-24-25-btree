@@ -1,8 +1,9 @@
 #pragma once
 
-#include <perfcpp/event_counter.h>
+// #include <perfcpp/event_counter.h>
 #include <benchmark/workload_set.h>
 #include <tree/btree_olc.h>
+#include <chrono>
 #include <omp.h>
 #include <thread>
 
@@ -64,7 +65,7 @@ public:
         auto to = _workload[phase].size();
 
         if (phase == benchmark::phase::INSERT) {
-            omp_set_num_threads(16);
+            //omp_set_num_threads(6);
             #pragma omp parallel for
             for (auto i = from; i < to; ++i) {
                 const auto &request = _workload[phase][i];
@@ -72,7 +73,7 @@ public:
             }
         }
         else {
-            omp_set_num_threads(16);
+            //omp_set_num_threads(6);
             #pragma omp parallel for
             for (auto i = from; i < to; i += elementsPer) {
                 std::array<std::int64_t, elementsPer> results;
@@ -162,12 +163,7 @@ public:
     {
         for (auto i = 0U; i < this->_iterations; ++i)
         {
-            /// Initialize the counter
-            auto counters = perf::CounterDefinition{"../../src/benchmark/perf_list.csv"};
-            auto event_counter = perf::EventCounter{ counters };
 
-            /// Specify hardware events to count
-            event_counter.add({"seconds", "instructions", "cycles", "CYCLE_ACTIVITY.STALLS_MEM_ANY", "CYCLE_ACTIVITY.STALLS_TOTAL"});
 
             /// Create the btree
             this->set_up(phase::INSERT);
@@ -175,36 +171,26 @@ public:
 
 
             /// Here starts the insert phase.
-            event_counter.start();
+            auto startInsert = std::chrono::high_resolution_clock::now();
             this->execute_single_run(phase::INSERT);
-            event_counter.stop();
+            auto endInsert = std::chrono::high_resolution_clock::now();
             
-            validate_tree();
+            //validate_tree();
 
             /// Print the results
-            std::cout << "Insert phase[" << i << "]: ";
-            auto result = event_counter.result();
-            for (const auto [event_name, value] : result)
-            {
-                std::cout << event_name << ": " << value << " | ";
-            }
-            std::cout << std::endl;
+            auto durationInsert = std::chrono::duration_cast<std::chrono::microseconds>(endInsert - startInsert).count();
+            std::cout << "Insert duration: " << durationInsert << " microseconds " << std::endl;
             
 
 
             /// Here starts the lookup phase.
-            event_counter.start();
+            auto startLookup = std::chrono::high_resolution_clock::now();
             this->execute_single_run(phase::MIXED);            
-            event_counter.stop();
+            auto endLookup = std::chrono::high_resolution_clock::now();
 
             /// Print the results
-            std::cout << "Lookup phase[" << i << "]: ";
-            result = event_counter.result();
-            for (const auto [event_name, value] : result)
-            {
-                std::cout << event_name << ": " << value << " | ";
-            }
-            std::cout << std::endl;
+            auto durationLookup = std::chrono::duration_cast<std::chrono::microseconds>(endLookup - startLookup).count();
+            std::cout << "Lookup duration: " << durationLookup << " microseconds " << std::endl;
 
 
 

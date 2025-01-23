@@ -8,8 +8,11 @@
 #include <builtin.h>
 #include <emmintrin.h>
 #include <bitset>
+#include <cstdint>
 
 namespace btreeolc {
+
+
 
 enum class PageType : uint8_t
 {
@@ -17,7 +20,7 @@ enum class PageType : uint8_t
     BTreeLeaf = 2
 };
 
-static const uint64_t pageSize = 167U;
+static const uint64_t pageSize = 512U;
 
 struct OptLock
 {
@@ -103,6 +106,9 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
 
     Key keys[maxEntries];
     Payload payloads[maxEntries];
+    //Key *keys = (Key*) aligned_alloc(32, maxEntries * sizeof(Key));
+    //Payload *payloads = (Payload*) aligned_alloc(32, maxEntries * sizeof(Payload));
+
 
     BTreeLeaf()
     {
@@ -112,10 +118,21 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
 
     virtual ~BTreeLeaf() = default;
 
+    /*
+    virtual ~BTreeLeaf() {
+        free(keys);
+        free(payloads);
+    }
+    */
+
     bool isFull() { return count == maxEntries; };
 
     unsigned lowerBound(Key k)
     {
+
+        //return branchless_lower_bound(keys, &keys[count], k) - (keys);
+
+        
         unsigned lower = 0;
         unsigned upper = count;
         do
@@ -135,6 +152,30 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
             }
         } while (lower < upper);
         return lower;
+        
+    }
+
+    /*Insert wird besser, lookup wird schlechter??*/
+    Key* branchless_lower_bound(Key * begin, Key * end, const Key value)
+    {
+        size_t length = end - begin;
+        if (length == 0)
+            return end;
+        size_t step = std::bit_floor(length);
+        if (step != length && (begin[step] < value))
+        {
+            length -= step + 1;
+            if (length == 0)
+                return end;
+            step = std::bit_ceil(length);
+            begin = end - step;
+        }
+        for (step /= 2; step != 0; step /= 2)
+        {
+            if ((begin[step] < value))
+                begin += step;
+        }
+        return begin + (*begin < value);
     }
 
     void insert(Key k, Payload p)
@@ -172,6 +213,7 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
         sep = keys[count - 1];
         return newLeaf;
     }
+
 };
 
 struct BTreeInnerBase : public NodeBase
@@ -183,10 +225,14 @@ struct BTreeInnerBase : public NodeBase
 
 template <class Key> struct BTreeInner : public BTreeInnerBase
 {
-    static const uint16_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(NodeBase *));
-    NodeBase *children[maxEntries];
+    static const uint16_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(NodeBase*));
+    //NodeBase *children[maxEntries];
+    NodeBase** children = (NodeBase**) malloc(sizeof(NodeBase) * maxEntries);
     Key keys[maxEntries];
     
+    
+    //NodeBase** children = new NodeBase*[maxEntries];
+
 
     BTreeInner()
     {
@@ -203,6 +249,7 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
                 delete children[i];
             }
         }
+        //free(children);
     }
 
     bool isFull() { return count == (maxEntries - 1); };
@@ -210,73 +257,56 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
 
     unsigned lowerBound(Key k)
     {
+        return branchless_lower_bound(keys, &keys[count], k) - (keys);
+        
         /*
-        for (unsigned i = 0; i < count; i++)
+        unsigned lower = 0;
+        unsigned upper = count;
+
+        do
         {
-            std::cout << "keys: " << this->keys[i] ;
-        std::cout << " key: " << k ;
-        bool compare = keys[i]<=k;
-        std::cout << " compare: " << compare<< std::endl;
-        }
+            unsigned mid = ((upper - lower) / 2) + lower;
+            if (k < keys[mid])
+            {
+                upper = mid;
+            }
+            else if (k > keys[mid])
+            {
+                lower = mid + 1;
+            }
+            else
+            {   
+                return mid;
+            }
+        } while (lower < upper);
+
+        return lower; 
         */
-        __m512i keysArray = _mm512_loadu_epi64((__m512 *)this->keys);
-        __m512i kArray = _mm512_set1_epi64(k);
-        __mmask8 mask;
-        mask = _mm512_cmp_epi64_mask(keysArray, kArray, _MM_CMPINT_LT);
-        unsigned rest = 0xFF >> (8-count);
-       // std::bitset<8> y(rest);
-        //std::cout <<"count : " << count << " rest: " << y << std::endl;
-      //  std::bitset<8> z((unsigned int)mask);
-       // std::cout << "mask: " << maxEntries << std::endl;
-        mask = mask & rest;
-        unsigned pos = __builtin_popcount (mask);
-        return pos;
-        unsigned lower = 0;
-        unsigned upper = count;
-       // std::bitset<8> x((unsigned int)mask);
-     //   std::cout << "maskbit: " << x << std::endl;
-        do
-        {
-            unsigned mid = ((upper - lower) / 2) + lower;
-            if (k < keys[mid])
-            {
-                upper = mid;
-            }
-            else if (k > keys[mid])
-            {
-                lower = mid + 1;
-            }
-            else
-            {   
-                //std::cout << "pos: " << pos << "mid: " << mid<< std::endl;
-                return mid;
-            }
-        } while (lower < upper);
-       // std::cout << "pos: " << pos << "lower: " << lower<< std::endl;
-        return lower; 
+        
     }
-    unsigned lowerBound_m(Key k)
+
+    Key* branchless_lower_bound(Key * begin, Key * end, const Key value)
     {
-        unsigned lower = 0;
-        unsigned upper = count;
-        do
+        size_t length = end - begin;
+        if (length == 0)
+            return end;
+        size_t step = std::bit_floor(length);
+        if (step != length && (begin[step] < value))
         {
-            unsigned mid = ((upper - lower) / 2) + lower;
-            if (k < keys[mid])
-            {
-                upper = mid;
-            }
-            else if (k > keys[mid])
-            {
-                lower = mid + 1;
-            }
-            else
-            {   
-                return mid;
-            }
-        } while (lower < upper);
-        return lower; 
+            length -= step + 1;
+            if (length == 0)
+                return end;
+            step = std::bit_ceil(length);
+            begin = end - step;
+        }
+        for (step /= 2; step != 0; step /= 2)
+        {
+            if ((begin[step] < value))
+                begin += step;
+        }
+        return begin + (*begin < value);
     }
+
 
     BTreeInner *split(Key &sep)
     {
@@ -566,13 +596,6 @@ template <class Key, class Value> struct BTree
                 if (needRestart)
                     goto restart;
             } 
-
-            for (size_t i = 0; i < size; i++)
-            {
-                
-            }
-            
-
         }
 
         for (size_t i = 0; i < size; i++)
