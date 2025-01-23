@@ -11,6 +11,9 @@ namespace benchmark {
 template <typename Tree> class BtreeOLCBenchmark 
 {
 public:
+
+    static const int elementsPer = 5;
+
     BtreeOLCBenchmark(NumericWorkloadSet &&workload, const std::uint16_t iterations)
         : _workload(std::move(workload)), _iterations(iterations)
     {}
@@ -33,7 +36,7 @@ public:
         }
     }
 
-    static void insertElements(std::vector<NumericTuple> _load, Tree *_tree, int from, int to) {
+    static void insertElements(const std::vector<NumericTuple>& _load, Tree *_tree, int from, int to) {
         std::cout << "insert   " << "   " << from << "  " << to << std::endl;
         for (auto i = from; i < to; ++i) {
             const auto &request = _load[i];
@@ -42,14 +45,16 @@ public:
         std::cout << "insert   " << "   " << from << "  " << to << " ready" << std::endl;
     }
 
-    static void getElements(std::vector<NumericTuple> _load, Tree *_tree, int from, int to) {
+    static void getElements(const std::vector<NumericTuple>& _load, Tree *_tree, int from, int to) {
         std::cout << "get   " << "   " << from << "  " << to << std::endl;
-        #pragma omp parallel for schedule(static)
-        for (auto i = from; i < to; ++i) {
-            const auto &request = _load[i];
-            std::int64_t value;
-            _tree->lookup(request.key(), value);
-            builtin::DoNotOptimize(value);
+        for (auto i = from; i < to; i += elementsPer) {
+            std::array<std::int64_t, elementsPer> results;
+            _tree->lookup_m(_load, results, i, i+elementsPer);
+
+            for (size_t j = 0; j < elementsPer; j++) {
+                builtin::DoNotOptimize(results[i]);
+            }
+            
         }
         std::cout << "get   " << "   " << from << "  " << to << " ready" << std::endl;
     }
@@ -58,9 +63,8 @@ public:
         auto from = 0U;
         auto to = _workload[phase].size();
 
-        omp_set_num_threads(4);
-
         if (phase == benchmark::phase::INSERT) {
+            omp_set_num_threads(4);
             #pragma omp parallel for
             for (auto i = from; i < to; ++i) {
                 const auto &request = _workload[phase][i];
@@ -68,6 +72,22 @@ public:
             }
         }
         else {
+            omp_set_num_threads(4);
+            #pragma omp parallel for
+            for (auto i = from; i < to; i += elementsPer) {
+                std::array<std::int64_t, elementsPer> results;
+                _tree->lookup_m(_workload[phase], results, i, i+elementsPer);
+
+                //builtin::DoNotOptimize(results[0]);
+                
+                for (size_t j = 0; j < elementsPer; j++) {
+                    builtin::DoNotOptimize(results[j]);
+                }
+                
+            }
+
+            /*
+            omp_set_num_threads(4);
             #pragma omp parallel for
             for (auto i = from; i < to; ++i) {
                 const auto &request = _workload[phase][i];
@@ -75,6 +95,7 @@ public:
                 this->_tree->lookup(request.key(), value);
                 builtin::DoNotOptimize(value);
             }
+            */
         }
     }
 
@@ -83,7 +104,7 @@ public:
         auto from = 0U;
         auto to = _workload[phase].size();
 
-        int numThreads = 0;
+        int numThreads = 4;
 
         std::thread threads[numThreads];
         if (phase == benchmark::phase::INSERT) {
@@ -115,15 +136,24 @@ public:
 
     void validate_tree()
     {
-        for (auto i=0; i<_workload[benchmark::phase::INSERT].size(); ++i)
+        for (auto i=0; i<_workload[benchmark::phase::INSERT].size(); i+=elementsPer)
         {
-            const auto &request = _workload[benchmark::phase::INSERT][i];
-            std::int64_t value;
-            this->_tree->lookup(request.key(), value);
-            if(value != request.value())
-            {
-                std::cout << "Error, the tree does not return the correct value. " << request.value() << " expected, but " << value << " returned!\nAborting!" << std::endl;
-                exit(1);
+            std::array<std::int64_t, elementsPer> results;
+            _tree->lookup_m(_workload[benchmark::phase::INSERT], results, i, i+elementsPer);
+
+            for (auto j = 0; j < elementsPer; j++) {
+                const auto &request = _workload[benchmark::phase::INSERT][i+j];
+                std::int64_t value = results[j];
+                if(value != request.value()) {
+                    std::cout << "Error, the tree does not return the correct value. " << request.value() << " expected, but " << value << " returned!\nAborting!" << std::endl;
+                    exit(1);
+                }
+                /*
+                 else {
+                    std::cout << (i+j) << "real: " << request.value() << " got:" << value << std::endl;
+                }
+                */
+                
             }
         }
     }
