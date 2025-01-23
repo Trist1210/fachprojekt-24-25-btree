@@ -1,3 +1,4 @@
 build/*
 results.csv
 workloads/*
+.vscode/settings.json

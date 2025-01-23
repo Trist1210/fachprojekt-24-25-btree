@@ -185,6 +185,7 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
     static const uint16_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(NodeBase *));
     NodeBase *children[maxEntries];
     Key keys[maxEntries];
+    
 
     BTreeInner()
     {
@@ -254,9 +255,27 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
 
 template <class Key, class Value> struct BTree
 {
+
+    /*
+    std::unordered_map<Key, Value> umap;
+
+    void insert(Key k, Value v) {
+        umap[k] = v;
+    }
+    
+    bool lookup(Key k, Value &result) {
+        result = umap.at(k);
+        return true;
+    }
+    */
+
+
     std::atomic<NodeBase *> root;
 
-    BTree() { root = new BTreeLeaf<Key, Value>(); }
+    BTree() { 
+        root = new BTreeLeaf<Key, Value>(); 
+        //umap.reserve(500000000);
+    }
 
     ~BTree() { delete root.load(); }
 
@@ -290,6 +309,10 @@ template <class Key, class Value> struct BTree
             sched_yield();
         else
             builtin::pause();
+    }
+
+    void insert_m(const std::vector<benchmark::NumericTuple>& _load, int from, int to) {
+
     }
 
     void insert(Key k, Value v)
@@ -425,6 +448,116 @@ template <class Key, class Value> struct BTree
             node->writeUnlock();
             return; // success
         }
+    }
+
+    template <size_t N>
+    void lookup_m(const std::vector<benchmark::NumericTuple>& _load, std::array<Value, N>& results, int from, int to) {
+        int size = to - from;
+
+            int restartCount = 0;
+    restart:
+        if (restartCount++)
+            yield(restartCount);
+        bool needRestart = false;
+
+        std::array<NodeBase*, N> nodes;
+        std::array<uint64_t, N> versionNodes;
+        std::array<BTreeInner<Key>*, N> parents;
+        std::array<uint64_t, N> parentVersions;
+        std::array<Key, N> keys;
+        std::array<unsigned, N> posStored;
+        for (size_t i = 0; i < size; i++)
+        {
+            nodes[i] = root;
+            versionNodes[i] = nodes[i]->readLockOrRestart(needRestart);
+
+            if (needRestart || (nodes[i] != root))
+                goto restart;
+
+            parents[i] = nullptr;
+            //parentVersions[i] = 0;
+            keys[i] = _load[from + i].key();
+            //posStored[i] = -1;
+        }
+        
+
+        while (nodes[0]->type == PageType::BTreeInner)
+        {
+            for (size_t i = 0; i < size; i++)
+            {
+                auto inner = static_cast<BTreeInner<Key> *>(nodes[i]);
+
+                if (parents[i])
+                {
+                    parents[i]->readUnlockOrRestart(parentVersions[i], needRestart);
+                    if (needRestart)
+                        goto restart;
+                }
+
+                parents[i] = inner;
+                parentVersions[i] = versionNodes[i];
+
+
+                posStored[i] = inner->lowerBound(keys[i]);
+
+                __builtin_prefetch(&(inner->children[posStored[i]]));
+                //
+            } 
+
+            for (size_t i = 0; i < size; i++) {
+                auto inner = static_cast<BTreeInner<Key> *>(nodes[i]);
+
+                nodes[i] = inner->children[posStored[i]];
+
+                inner->checkOrRestart(versionNodes[i], needRestart);
+                if (needRestart)
+                    goto restart;
+
+                versionNodes[i] = nodes[i]->readLockOrRestart(needRestart);
+                if (needRestart)
+                    goto restart;
+            } 
+
+            for (size_t i = 0; i < size; i++)
+            {
+                
+            }
+            
+
+        }
+
+        for (size_t i = 0; i < size; i++)
+        {
+            BTreeLeaf<Key, Value> *leaf = static_cast<BTreeLeaf<Key, Value> *>(nodes[i]);
+            unsigned p = leaf->lowerBound(keys[i]);
+
+            __builtin_prefetch(&(leaf->keys[p]));
+            __builtin_prefetch(&(leaf->payloads[p]));
+            posStored[i] = p;
+        }
+
+        for (size_t i = 0; i < size; i++)
+        {
+            BTreeLeaf<Key, Value> *leaf = static_cast<BTreeLeaf<Key, Value> *>(nodes[i]);
+            bool success;
+            if ((posStored[i] < leaf->count) && (leaf->keys[posStored[i]] == keys[i]))
+            {
+                success = true;
+                results[i] = leaf->payloads[posStored[i]];
+            }
+            if (parents[i])
+            {
+                parents[i]->readUnlockOrRestart(parentVersions[i], needRestart);
+                if (needRestart)
+                    goto restart;
+            }
+            nodes[i]->readUnlockOrRestart(versionNodes[i], needRestart);
+            if (needRestart)
+                goto restart;
+        }
+        
+        
+        //return success;
     }
 
     bool lookup(Key k, Value &result)
