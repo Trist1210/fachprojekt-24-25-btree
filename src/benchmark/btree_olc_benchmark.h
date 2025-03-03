@@ -58,7 +58,7 @@ public:
         auto from = 0U;
         auto to = _workload[phase].size();
 
-        omp_set_num_threads(4);
+        omp_set_num_threads(16);
 
         if (phase == benchmark::phase::INSERT) {
             #pragma omp parallel for
@@ -137,7 +137,7 @@ public:
             auto event_counter = perf::EventCounter{ counters };
 
             /// Specify hardware events to count
-            event_counter.add({"seconds", "instructions", "cycles", "CYCLE_ACTIVITY.STALLS_MEM_ANY", "CYCLE_ACTIVITY.STALLS_TOTAL"});
+            event_counter.add({"seconds", "instructions", "cycles"});
 
             /// Create the btree
             this->set_up(phase::INSERT);

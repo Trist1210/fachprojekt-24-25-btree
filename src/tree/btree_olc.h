@@ -16,7 +16,7 @@ enum class PageType : uint8_t
     BTreeLeaf = 2
 };
 
-static const uint64_t pageSize = 512U;
+static const uint64_t pageSize = 256U;
 
 struct OptLock
 {
