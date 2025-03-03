@@ -12,7 +12,7 @@ template <typename Tree> class BtreeOLCBenchmark
 {
 public:
 
-    static const int elementsPer = 5;
+    static const int elementsPer = 20;
 
     BtreeOLCBenchmark(NumericWorkloadSet &&workload, const std::uint16_t iterations)
         : _workload(std::move(workload)), _iterations(iterations)
@@ -64,7 +64,7 @@ public:
         auto to = _workload[phase].size();
 
         if (phase == benchmark::phase::INSERT) {
-            omp_set_num_threads(4);
+            omp_set_num_threads(16);
             #pragma omp parallel for
             for (auto i = from; i < to; ++i) {
                 const auto &request = _workload[phase][i];
@@ -72,7 +72,7 @@ public:
             }
         }
         else {
-            omp_set_num_threads(4);
+            omp_set_num_threads(16);
             #pragma omp parallel for
             for (auto i = from; i < to; i += elementsPer) {
                 std::array<std::int64_t, elementsPer> results;
