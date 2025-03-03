@@ -21,7 +21,7 @@ Lookup phase[8]: seconds: 19.3475 | instructions: 2.59624e+10 | cycles: 9.76677e
 Insert phase[9]: seconds: 19.0119 | instructions: 3.61853e+10 | cycles: 9.59536e+10 | 
 Lookup phase[9]: seconds: 19.3386 | instructions: 2.59723e+10 | cycles: 9.76185e+10 | 
 
-!multi-threading 16 threads pageSize 256U
+!multi-threading
 #Workload: insert phase: 50000000 inserts / mixed phase: 50000000 requests
 Insert phase[0]: seconds: 1.63236 | instructions: 2.34529e+09 | cycles: 7.45167e+09 | 
 Lookup phase[0]: seconds: 1.42377 | instructions: 1.62092e+09 | cycles: 6.96267e+09 | 
@@ -44,7 +44,7 @@ Lookup phase[8]: seconds: 1.53046 | instructions: 1.62104e+09 | cycles: 7.30432e
 Insert phase[9]: seconds: 1.67604 | instructions: 2.26829e+09 | cycles: 7.98336e+09 | 
 Lookup phase[9]: seconds: 1.49947 | instructions: 1.61997e+09 | cycles: 7.28806e+09 | 
 
-!multi-threading 16 threads pageSize 256U lookup batched 20 Elements
+!lookup batched 
 #Workload: insert phase: 50000000 inserts / mixed phase: 50000000 requests
 Insert phase[0]: seconds: 1.57057 | instructions: 2.31991e+09 | cycles: 7.53821e+09 | 
 Lookup phase[0]: seconds: 0.797958 | instructions: 2.01069e+09 | cycles: 3.92419e+09 | 
@@ -67,7 +67,7 @@ Lookup phase[8]: seconds: 0.738824 | instructions: 2.01337e+09 | cycles: 3.62232
 Insert phase[9]: seconds: 1.66066 | instructions: 2.27382e+09 | cycles: 7.9726e+09 | 
 Lookup phase[9]: seconds: 0.739535 | instructions: 2.01031e+09 | cycles: 3.62531e+09 | 
 
-!multi-threading 16 threads pageSize 167U lookup batched 20 Elements lowerBound avx-512
+!simd
 #Workload: insert phase: 50000000 inserts / mixed phase: 50000000 requests
 Insert phase[0]: seconds: 1.67247 | instructions: 2.22432e+09 | cycles: 7.96765e+09 | 
 Lookup phase[0]: seconds: 0.662886 | instructions: 1.81066e+09 | cycles: 3.08346e+09 | 
