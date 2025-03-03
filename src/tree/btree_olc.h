@@ -7,6 +7,7 @@
 #include <sched.h>
 #include <builtin.h>
 #include <emmintrin.h>
+#include <bitset>
 
 namespace btreeolc {
 
@@ -16,7 +17,7 @@ enum class PageType : uint8_t
     BTreeLeaf = 2
 };
 
-static const uint64_t pageSize = 512U;
+static const uint64_t pageSize = 167U;
 
 struct OptLock
 {
@@ -206,7 +207,55 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
 
     bool isFull() { return count == (maxEntries - 1); };
 
+
     unsigned lowerBound(Key k)
+    {
+        /*
+        for (unsigned i = 0; i < count; i++)
+        {
+            std::cout << "keys: " << this->keys[i] ;
+        std::cout << " key: " << k ;
+        bool compare = keys[i]<=k;
+        std::cout << " compare: " << compare<< std::endl;
+        }
+        */
+        __m512i keysArray = _mm512_loadu_epi64((__m512 *)this->keys);
+        __m512i kArray = _mm512_set1_epi64(k);
+        __mmask8 mask;
+        mask = _mm512_cmp_epi64_mask(keysArray, kArray, _MM_CMPINT_LT);
+        unsigned rest = 0xFF >> (8-count);
+       // std::bitset<8> y(rest);
+        //std::cout <<"count : " << count << " rest: " << y << std::endl;
+      //  std::bitset<8> z((unsigned int)mask);
+       // std::cout << "mask: " << maxEntries << std::endl;
+        mask = mask & rest;
+        unsigned pos = __builtin_popcount (mask);
+        return pos;
+        unsigned lower = 0;
+        unsigned upper = count;
+       // std::bitset<8> x((unsigned int)mask);
+     //   std::cout << "maskbit: " << x << std::endl;
+        do
+        {
+            unsigned mid = ((upper - lower) / 2) + lower;
+            if (k < keys[mid])
+            {
+                upper = mid;
+            }
+            else if (k > keys[mid])
+            {
+                lower = mid + 1;
+            }
+            else
+            {   
+                //std::cout << "pos: " << pos << "mid: " << mid<< std::endl;
+                return mid;
+            }
+        } while (lower < upper);
+       // std::cout << "pos: " << pos << "lower: " << lower<< std::endl;
+        return lower; 
+    }
+    unsigned lowerBound_m(Key k)
     {
         unsigned lower = 0;
         unsigned upper = count;
