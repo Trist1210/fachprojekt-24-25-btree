@@ -88,5 +88,5 @@ for i, v in enumerate(lookup_times):
     axs.text(i + bar_width/2, v, f"{proz:.2f}%", ha='center', va='bottom')
 
 plt.tight_layout()
-#plt.savefig("batching_output.png", format='png')
+plt.savefig("batching_output.png", format='png')
 plt.show()
