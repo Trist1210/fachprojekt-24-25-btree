@@ -163,7 +163,12 @@ public:
     {
         for (auto i = 0U; i < this->_iterations; ++i)
         {
+            /// Initialize the counter
+            auto counters = perf::CounterDefinition{"../../src/benchmark/perf_list.csv"};
+            auto event_counter = perf::EventCounter{ counters };
 
+            /// Specify hardware events to count
+            event_counter.add({"seconds", "instructions", "cycles"});
 
             /// Create the btree
             this->set_up(phase::INSERT);
