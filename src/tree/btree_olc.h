@@ -17,7 +17,7 @@ enum class PageType : uint8_t
     BTreeLeaf = 2
 };
 
-static const uint64_t pageSize = 167U;
+static const uint64_t pageSize = 256U;
 
 struct OptLock
 {
@@ -116,6 +116,24 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
 
     unsigned lowerBound(Key k)
     {
+       /*
+       // std::cout << maxEntries << std::endl;
+        unsigned pos = 0;
+        for(int i = 0; i < count; i+=8) {
+            
+        
+        __m512i keysArray = _mm512_loadu_epi64((__m512 *)&(this->keys[i]));
+        __m512i kArray = _mm512_set1_epi64(k);
+        __mmask8 mask;
+        mask = _mm512_cmp_epi64_mask(keysArray, kArray, _MM_CMPINT_LT);
+        unsigned rest = 0xFFFFFFFF >> (32-(count-i));
+
+        mask = mask & rest;
+         pos+= __builtin_popcount (mask);
+        }
+        return pos;
+ */
+        
         unsigned lower = 0;
         unsigned upper = count;
         do
@@ -211,30 +229,25 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
     unsigned lowerBound(Key k)
     {
         /*
-        for (unsigned i = 0; i < count; i++)
-        {
-            std::cout << "keys: " << this->keys[i] ;
-        std::cout << " key: " << k ;
-        bool compare = keys[i]<=k;
-        std::cout << " compare: " << compare<< std::endl;
-        }
-        */
-        __m512i keysArray = _mm512_loadu_epi64((__m512 *)this->keys);
+        //return branchless_lower_bound(keys, &keys[count], k) - (keys);
+       //std::cout << maxEntries << std::endl;
+        unsigned pos = 0;
+        for(int i = 0; i < count; i+=8) {
+            
+        
+        __m512i keysArray = _mm512_loadu_epi64((__m512 *)&(this->keys[i]));
         __m512i kArray = _mm512_set1_epi64(k);
         __mmask8 mask;
         mask = _mm512_cmp_epi64_mask(keysArray, kArray, _MM_CMPINT_LT);
-        unsigned rest = 0xFF >> (8-count);
-       // std::bitset<8> y(rest);
-        //std::cout <<"count : " << count << " rest: " << y << std::endl;
-      //  std::bitset<8> z((unsigned int)mask);
-       // std::cout << "mask: " << maxEntries << std::endl;
+        unsigned rest = 0xFFFFFFFF >> (32-(count-i));
+
         mask = mask & rest;
-        unsigned pos = __builtin_popcount (mask);
+         pos+= __builtin_popcount (mask);
+        }
         return pos;
+*/
         unsigned lower = 0;
         unsigned upper = count;
-       // std::bitset<8> x((unsigned int)mask);
-     //   std::cout << "maskbit: " << x << std::endl;
         do
         {
             unsigned mid = ((upper - lower) / 2) + lower;
@@ -254,6 +267,27 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
         } while (lower < upper);
        // std::cout << "pos: " << pos << "lower: " << lower<< std::endl;
         return lower; 
+    }
+    Key* branchless_lower_bound(Key * begin, Key * end, const Key value)
+    {
+        size_t length = end - begin;
+        if (length == 0)
+            return end;
+        size_t step = std::bit_floor(length);
+        if (step != length && (begin[step] < value))
+        {
+            length -= step + 1;
+            if (length == 0)
+                return end;
+            step = std::bit_ceil(length);
+            begin = end - step;
+        }
+        for (step /= 2; step != 0; step /= 2)
+        {
+            if ((begin[step] < value))
+                begin += step;
+        }
+        return begin + (*begin < value);
     }
     unsigned lowerBound_m(Key k)
     {
