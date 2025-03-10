@@ -260,6 +260,26 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
         return branchless_lower_bound(keys, &keys[count], k) - (keys);
         
         /*
+        
+        int abc = 0;
+
+        for (int i = 0; i < count; i+=4)
+        {
+            __m256i vectorA = _mm256_loadu_si256((const __m256i_u*) &keys[i]);
+            __m256i vectorB = _mm256_set1_epi64x((long long) k);
+            __m256i res = _mm256_cmpgt_epi64(vectorB, vectorA);
+            long long rArr[4];
+            _mm256_storeu_si256((__m256i_u*) rArr, res);
+            int a = ((rArr[0] & 0b1) | (rArr[1] & 0b10) | (rArr[2] & 0b100) | (rArr[3] & 0b1000)) & (0xffffffff >> (32-(count - i)));
+            abc += __builtin_popcount(a);
+        }
+        return abc;
+        
+        */
+
+
+
+        /*
         unsigned lower = 0;
         unsigned upper = count;
 
