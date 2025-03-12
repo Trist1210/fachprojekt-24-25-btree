@@ -163,30 +163,21 @@ public:
     {
         for (auto i = 0U; i < this->_iterations; ++i)
         {
-            /// Initialize the counter
-            auto counters = perf::CounterDefinition{"../../src/benchmark/perf_list.csv"};
-            auto event_counter = perf::EventCounter{ counters };
-
-            /// Specify hardware events to count
-            event_counter.add({"seconds", "instructions", "cycles"});
 
             /// Create the btree
             this->set_up(phase::INSERT);
-
-
 
             /// Here starts the insert phase.
             auto startInsert = std::chrono::high_resolution_clock::now();
             this->execute_single_run(phase::INSERT);
             auto endInsert = std::chrono::high_resolution_clock::now();
             
-            //validate_tree();
+            validate_tree();
 
             /// Print the results
             auto durationInsert = std::chrono::duration_cast<std::chrono::microseconds>(endInsert - startInsert).count();
             std::cout << "Insert duration: " << durationInsert << " microseconds " << std::endl;
             
-
 
             /// Here starts the lookup phase.
             auto startLookup = std::chrono::high_resolution_clock::now();
@@ -196,8 +187,6 @@ public:
             /// Print the results
             auto durationLookup = std::chrono::duration_cast<std::chrono::microseconds>(endLookup - startLookup).count();
             std::cout << "Lookup duration: " << durationLookup << " microseconds " << std::endl;
-
-
 
             /// Destroy the btree
             this->tear_down(phase::MIXED);

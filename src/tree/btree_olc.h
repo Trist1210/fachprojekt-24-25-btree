@@ -12,7 +12,32 @@
 
 namespace btreeolc {
 
+    void fastMemcpy(void* dst_ptr, const void* src_ptr, size_t size) {
+        char* dst = (char*) dst_ptr;
+        const char* src = (char*) src_ptr;
+        size_t remaining_size = size;
+    
+        const size_t size_per = 96;
+        const size_t vec_size = 32;            // VEC_SIZE (Größe eines Vektors, hier 128-Bit/16 Bytes wenn mit __m128i gearbeitet wird oder 32 Bytes bei __m256i)
+    
+        __m256i temp0, temp1, temp2;
 
+        temp0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src));
+        temp1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src + vec_size));
+        temp2 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src + vec_size * 2));
+
+        src += size_per;
+        remaining_size -= size_per;
+
+        _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst), temp0);
+        _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst + vec_size), temp1);
+        _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst + vec_size * 2), temp2);
+
+        dst += size_per;
+        
+        std::memcpy(dst, src, remaining_size);
+    }
+      
 
 enum class PageType : uint8_t
 {
@@ -124,6 +149,7 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
         free(payloads);
     }
     */
+    
 
     bool isFull() { return count == maxEntries; };
 
@@ -208,9 +234,15 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
         BTreeLeaf *newLeaf = new BTreeLeaf();
         newLeaf->count = count - (count / 2);
         count = count - newLeaf->count;
-        memcpy(newLeaf->keys, keys + count, sizeof(Key) * newLeaf->count);
-        memcpy(newLeaf->payloads, payloads + count, sizeof(Payload) * newLeaf->count);
+
         sep = keys[count - 1];
+
+        //memcpy(newLeaf->keys, keys + count, sizeof(Key) * newLeaf->count);
+        //memcpy(newLeaf->payloads, payloads + count, sizeof(Payload) * newLeaf->count);
+        
+        fastMemcpy(newLeaf->keys, keys + count, sizeof(Key) * newLeaf->count);
+        fastMemcpy(newLeaf->payloads, payloads + count, sizeof(Payload) * newLeaf->count);
+        
         return newLeaf;
     }
 
@@ -226,8 +258,8 @@ struct BTreeInnerBase : public NodeBase
 template <class Key> struct BTreeInner : public BTreeInnerBase
 {
     static const uint16_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(NodeBase*));
-    //NodeBase *children[maxEntries];
-    NodeBase** children = (NodeBase**) malloc(sizeof(NodeBase) * maxEntries);
+    NodeBase *children[maxEntries];
+    //NodeBase** children = (NodeBase**) malloc(sizeof(NodeBase) * maxEntries);
     Key keys[maxEntries];
     
     
@@ -334,8 +366,12 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
         newInner->count = count - (count / 2);
         count = count - newInner->count - 1;
         sep = keys[count];
-        memcpy(newInner->keys, keys + count + 1, sizeof(Key) * (newInner->count + 1));
-        memcpy(newInner->children, children + count + 1, sizeof(NodeBase *) * (newInner->count + 1));
+        //memcpy(newInner->keys, keys + count + 1, sizeof(Key) * (newInner->count + 1));
+        //memcpy(newInner->children, children + count + 1, sizeof(NodeBase *) * (newInner->count + 1));
+
+        fastMemcpy(newInner->keys, keys + count + 1, sizeof(Key) * (newInner->count + 1));
+        fastMemcpy(newInner->children, children + count + 1, sizeof(NodeBase *) * (newInner->count + 1));
+
         return newInner;
     }
 
